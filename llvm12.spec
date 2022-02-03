@@ -7,7 +7,7 @@
 %define keepstatic 1
 Name     : llvm12
 Version  : 12.0.1
-Release  : 1
+Release  : 2
 URL      : https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/llvm-project-12.0.1.src.tar.xz
 Source0  : https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/llvm-project-12.0.1.src.tar.xz
 Source1  : https://github.com/KhronosGroup/SPIRV-LLVM-Translator/archive/v12.0.0/SPIRV-LLVM-Translator-12.0.0.tar.gz
@@ -137,7 +137,7 @@ export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
 export LANG=C.UTF-8
-export SOURCE_DATE_EPOCH=1643916345
+export SOURCE_DATE_EPOCH=1643918811
 unset LD_AS_NEEDED
 pushd llvm
 mkdir -p clr-build
@@ -251,7 +251,7 @@ popd
 popd
 
 %install
-export SOURCE_DATE_EPOCH=1643916345
+export SOURCE_DATE_EPOCH=1643918811
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/package-licenses/llvm12
 cp %{_builddir}/SPIRV-LLVM-Translator-12.0.0/LICENSE.TXT %{buildroot}/usr/share/package-licenses/llvm12/8f178caf2a2d6e6c711a30da69077572df356cf6
@@ -332,40 +332,28 @@ rm -rf %{buildroot}/usr/share/*
 mv %{buildroot}/usr/package-licenses %{buildroot}/usr/share
 
 # Rename the tools to have a versioned suffix and symlink back
-pushd %{buildroot}/usr/bin
-VERSION=%{version}
-VERSION=${VERSION%%%%.*}
-for f in *; do
+pushd %{buildroot}/usr
+FULL_VERSION=%{version}
+VERSION=${FULL_VERSION%%%%.*}
+mkdir -p lib64/clang/$FULL_VERSION/bin
+mv bin/* lib64/clang/$FULL_VERSION/bin
+for f in lib64/clang/$FULL_VERSION/bin/*; do
 case "$f" in
 *-$VERSION)
 # Already versioned, leave it alone
 continue
 ;;
 esac
-if [ -L "$f" ]; then
-cf=$(readlink $f)
-case $cf in
-*-$VERSION)
-# symlink already points to versioned file
-continue
-;;
-*)
-# Retarget the symlink
-ln -s -f $cf-$VERSION $f
-;;
-esac
-fi
-mv $f $f-$VERSION
-ln -s -f $f-$VERSION $f
+ln -s ../$f bin/${f##*/}-$VERSION
 done
-popd
 
-# Ditto for the gold plugin
-pushd %{buildroot}/usr/lib64
-mv LLVMgold.so LLVMgold-$VERSION.so
-ln -s LLVMgold-$VERSION.so LLVMgold.so
-mkdir -p ../lib/bfd-plugins
-ln -s ../../lib64/LLVMgold-$VERSION.so ../lib/bfd-plugins
+# libclang-cpp auto-relocates, so create a symlink so it finds its files
+ln -s ../.. lib64/clang/$FULL_VERSION/lib64
+
+# Put the LLVM gold plugin back, under the versioned name
+mv lib64/LLVMgold.so.save lib64/LLVMgold-$VERSION.so
+mkdir -p lib/bfd-plugins
+ln -s ../../lib64/LLVMgold-$VERSION.so lib/bfd-plugins
 popd
 ## install_append end
 
