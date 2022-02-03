@@ -18,6 +18,7 @@ License  : Apache-2.0 BSD-3-Clause ISC MIT MPL-2.0 NCSA
 Requires: llvm12-bin = %{version}-%{release}
 Requires: llvm12-lib = %{version}-%{release}
 Requires: llvm12-license = %{version}-%{release}
+Requires: llvm12-python = %{version}-%{release}
 Requires: llvm12-python3 = %{version}-%{release}
 BuildRequires : Sphinx
 BuildRequires : Vulkan-Headers-dev Vulkan-Loader-dev Vulkan-Tools
@@ -30,13 +31,8 @@ BuildRequires : buildreq-golang
 BuildRequires : cmake
 BuildRequires : doxygen
 BuildRequires : elfutils-dev
-BuildRequires : gcc-dev32
-BuildRequires : gcc-libgcc32
-BuildRequires : gcc-libstdc++32
 BuildRequires : git
 BuildRequires : glibc-dev
-BuildRequires : glibc-dev32
-BuildRequires : glibc-libc32
 BuildRequires : googletest-dev
 BuildRequires : grep
 BuildRequires : libffi-dev
@@ -51,7 +47,6 @@ BuildRequires : ncurses-dev
 BuildRequires : ninja
 BuildRequires : perl
 BuildRequires : pkg-config
-BuildRequires : pkgconfig(32libffi)
 BuildRequires : pkgconfig(libedit)
 BuildRequires : pkgconfig(libffi)
 BuildRequires : protobuf-dev
@@ -105,15 +100,20 @@ Requires: llvm12 = %{version}-%{release}
 dev components for the llvm12 package.
 
 
-%package dev32
-Summary: dev32 components for the llvm12 package.
+%package extras
+Summary: extras components for the llvm12 package.
 Group: Default
-Requires: llvm12-lib32 = %{version}-%{release}
-Requires: llvm12-bin = %{version}-%{release}
-Requires: llvm12-dev = %{version}-%{release}
 
-%description dev32
-dev32 components for the llvm12 package.
+%description extras
+extras components for the llvm12 package.
+
+
+%package extras-libllvm
+Summary: extras-libllvm components for the llvm12 package.
+Group: Default
+
+%description extras-libllvm
+extras-libllvm components for the llvm12 package.
 
 
 %package lib
@@ -123,15 +123,6 @@ Requires: llvm12-license = %{version}-%{release}
 
 %description lib
 lib components for the llvm12 package.
-
-
-%package lib32
-Summary: lib32 components for the llvm12 package.
-Group: Default
-Requires: llvm12-license = %{version}-%{release}
-
-%description lib32
-lib32 components for the llvm12 package.
 
 
 %package license
@@ -165,15 +156,6 @@ Requires: pypi(seaborn)
 
 %description python3
 python3 components for the llvm12 package.
-
-
-%package staticdev32
-Summary: staticdev32 components for the llvm12 package.
-Group: Default
-Requires: llvm12-dev = %{version}-%{release}
-
-%description staticdev32
-staticdev32 components for the llvm12 package.
 
 
 %prep
@@ -233,7 +215,7 @@ export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
 export LANG=C.UTF-8
-export SOURCE_DATE_EPOCH=1643920816
+export SOURCE_DATE_EPOCH=1643924756
 unset LD_AS_NEEDED
 pushd llvm
 mkdir -p clr-build
@@ -287,67 +269,10 @@ echo -DLLVM_ENABLE_PROJECTS="clang" \
 esac`
 ninja  %{?_smp_mflags}
 popd
-mkdir -p clr-build32
-pushd clr-build32
-export GCC_IGNORE_WERROR=1
-export CC=clang
-export CXX=clang++
-export LD=ld.gold
-CFLAGS=${CFLAGS/ -Wa,/ -fno-integrated-as -Wa,}
-CXXFLAGS=${CXXFLAGS/ -Wa,/ -fno-integrated-as -Wa,}
-export CFLAGS="-O2 -g -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=32 -Wformat -Wformat-security -Wno-error -Wl,-z,max-page-size=0x1000 -march=westmere -mtune=haswell"
-export CXXFLAGS=$CFLAGS
-export FFLAGS="-O2 -g -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=32 -Wno-error -Wl,-z,max-page-size=0x1000 -march=westmere -mtune=haswell"
-export FCFLAGS=$FFLAGS
-unset LDFLAGS
-unset LDFLAGS
-export CFLAGS="$CFLAGS -fno-lto "
-export FCFLAGS="$FFLAGS -fno-lto "
-export FFLAGS="$FFLAGS -fno-lto "
-export CXXFLAGS="$CXXFLAGS -fno-lto "
-export PKG_CONFIG_PATH="/usr/lib32/pkgconfig:/usr/share/pkgconfig"
-export ASFLAGS="${ASFLAGS}${ASFLAGS:+ }--32"
-export CFLAGS="${CFLAGS}${CFLAGS:+ }-m32 -mstackrealign"
-export CXXFLAGS="${CXXFLAGS}${CXXFLAGS:+ }-m32 -mstackrealign"
-export LDFLAGS="${LDFLAGS}${LDFLAGS:+ }-m32 -mstackrealign"
-%cmake -DLIB_INSTALL_DIR:PATH=/usr/lib32 -DCMAKE_INSTALL_LIBDIR=/usr/lib32 -DLIB_SUFFIX=32 .. -G Ninja \
--DCMAKE_C_FLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//' <<<$CFLAGS`" \
--DCMAKE_CXX_FLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//' <<<$CXXFLAGS`" \
--DCMAKE_EXE_LINKER_FLAGS="$CXXFLAGS -Wl,--as-needed -Wl,--build-id=sha1" \
--DCMAKE_MODULE_LINKER_FLAGS="$CXXFLAGS -Wl,--as-needed -Wl,--build-id=sha1" \
--DCMAKE_SHARED_LINKER_FLAGS="$CXXFLAGS -Wl,--as-needed -Wl,--build-id=sha1" \
--DENABLE_LINKER_BUILD_ID=ON \
--DBUILD_SHARED_LIBS:BOOL=OFF \
--DLLVM_LINK_LLVM_DYLIB:BOOL=ON \
--DCLANG_LINK_CLANG_DYLIB:BOOL=ON \
--DLLVM_BUILD_RUNTIME:BOOL=ON \
--DLLVM_BUILD_TOOLS:BOOL=ON \
--DLLVM_ENABLE_FFI:BOOL=ON -DFFI_INCLUDE_DIR=`pkg-config --variable=includedir libffi` \
--DLLVM_ENABLE_RTTI:BOOL=ON \
--DLLVM_ENABLE_ZLIB:BOOL=ON \
--DLLVM_REQUIRES_RTTI:BOOL=ON \
--DLLVM_TABLEGEN=$LLVM_TABLEGEN \
--DCLANG_TABLEGEN=$CLANG_TABLEGEN \
--DLLVM_ENABLE_PROJECTS="lld;lldb;clang;clang-tools-extra;compiler-rt;openmp;polly;mler;" \
--DLLVM_LIBDIR_SUFFIX=64 \
--DLLVM_BINUTILS_INCDIR=/usr/include \
--DLLVM_HOST_TRIPLE="x86_64-generic-linux" \
--DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3 \
-`case "$PWD" in *build32) \
-echo -DLLVM_BUILD_TOOLS:BOOL=OFF -DLLVM_TOOL_CLANG_BUILD:BOOL=OFF; \
-echo -DLLVM_TOOL_COMPILER_RT_BUILD:BOOL=OFF -DLLVM_TOOL_LLD_BUILD:BOOL=OFF; \
-echo -DLLVM_TOOL_OPENMP_BUILD:BOOL=OFF -DLLVM_TOOL_COMPILER_RT_BUILD:BOOL=OFF; \
-echo -DLLVM_LIBDIR_SUFFIX=32 -DLLVM_HOST_TRIPLE="i686-generic-linux"; \
-echo -DLLVM_ENABLE_PROJECTS="clang" \
-;; \
-esac`
-ninja  %{?_smp_mflags}
-unset PKG_CONFIG_PATH
-popd
 popd
 
 %install
-export SOURCE_DATE_EPOCH=1643920816
+export SOURCE_DATE_EPOCH=1643924756
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/package-licenses/llvm12
 cp %{_builddir}/SPIRV-LLVM-Translator-12.0.0/LICENSE.TXT %{buildroot}/usr/share/package-licenses/llvm12/8f178caf2a2d6e6c711a30da69077572df356cf6
@@ -383,21 +308,6 @@ cp %{_builddir}/llvm-project-12.0.1.src/polly/lib/External/isl/LICENSE %{buildro
 cp %{_builddir}/llvm-project-12.0.1.src/polly/tools/GPURuntime/LICENSE.TXT %{buildroot}/usr/share/package-licenses/llvm12/ce27417c74ca5ad6d0b5c96ede8ff82e4d87900f
 cp %{_builddir}/llvm-project-12.0.1.src/pstl/LICENSE.txt %{buildroot}/usr/share/package-licenses/llvm12/72c865be698cefc46549ed61e279f98432364fca
 pushd llvm
-pushd clr-build32
-%ninja_install32
-if [ -d  %{buildroot}/usr/lib32/pkgconfig ]
-then
-pushd %{buildroot}/usr/lib32/pkgconfig
-for i in *.pc ; do ln -s $i 32$i ; done
-popd
-fi
-if [ -d %{buildroot}/usr/share/pkgconfig ]
-then
-pushd %{buildroot}/usr/share/pkgconfig
-for i in *.pc ; do ln -s $i 32$i ; done
-popd
-fi
-popd
 pushd clr-build
 %ninja_install
 popd
@@ -455,13 +365,6 @@ popd
 
 %files
 %defattr(-,root,root,-)
-/usr/lib32/clang/12.0.1/include/cuda_wrappers/algorithm
-/usr/lib32/clang/12.0.1/include/cuda_wrappers/complex
-/usr/lib32/clang/12.0.1/include/cuda_wrappers/new
-/usr/lib32/clang/12.0.1/include/module.modulemap
-/usr/lib32/clang/12.0.1/include/openmp_wrappers/cmath
-/usr/lib32/clang/12.0.1/include/openmp_wrappers/complex
-/usr/lib32/clang/12.0.1/include/openmp_wrappers/new
 /usr/lib64/clang/12.0.1/bin/bugpoint
 /usr/lib64/clang/12.0.1/bin/c-index-test
 /usr/lib64/clang/12.0.1/bin/clang
@@ -574,48 +477,31 @@ popd
 /usr/lib64/clang/12.0.1/bin/split-file
 /usr/lib64/clang/12.0.1/bin/verify-uselistorder
 /usr/lib64/clang/12.0.1/bin/wasm-ld
-/usr/lib64/clang/12.0.1/include/cuda_wrappers/algorithm
-/usr/lib64/clang/12.0.1/include/cuda_wrappers/complex
-/usr/lib64/clang/12.0.1/include/cuda_wrappers/new
-/usr/lib64/clang/12.0.1/include/module.modulemap
 /usr/lib64/clang/12.0.1/include/openmp_wrappers/cmath
 /usr/lib64/clang/12.0.1/include/openmp_wrappers/complex
 /usr/lib64/clang/12.0.1/include/openmp_wrappers/new
 /usr/lib64/clang/12.0.1/include/profile/InstrProfData.inc
-/usr/lib64/clang/12.0.1/lib/linux/clang_rt.crtbegin-i386.o
 /usr/lib64/clang/12.0.1/lib/linux/clang_rt.crtbegin-x86_64.o
-/usr/lib64/clang/12.0.1/lib/linux/clang_rt.crtend-i386.o
 /usr/lib64/clang/12.0.1/lib/linux/clang_rt.crtend-x86_64.o
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan-i386.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan-preinit-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan-preinit-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan-x86_64.a.syms
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan_cxx-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan_cxx-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan_cxx-x86_64.a.syms
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.builtins-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.builtins-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.cfi-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.cfi-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.cfi_diag-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.cfi_diag-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.dd-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.dfsan-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.dfsan-x86_64.a.syms
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.fuzzer-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.fuzzer-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.fuzzer_interceptors-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.fuzzer_interceptors-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.fuzzer_no_main-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.fuzzer_no_main-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.gwp_asan-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.gwp_asan-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.hwasan-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.hwasan-x86_64.a.syms
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.hwasan_cxx-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.hwasan_cxx-x86_64.a.syms
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.lsan-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.lsan-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.memprof-preinit-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.memprof-x86_64.a
@@ -626,37 +512,24 @@ popd
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.msan-x86_64.a.syms
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.msan_cxx-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.msan_cxx-x86_64.a.syms
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.profile-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.profile-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.safestack-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.safestack-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_cxx-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_cxx-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_cxx_minimal-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_cxx_minimal-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_minimal-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_minimal-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_standalone-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_standalone-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_standalone_cxx-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_standalone_cxx-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.stats-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.stats-x86_64.a
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.stats_client-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.stats_client-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.tsan-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.tsan-x86_64.a.syms
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.tsan_cxx-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.tsan_cxx-x86_64.a.syms
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_minimal-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_minimal-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_minimal-x86_64.a.syms
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_standalone-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_standalone-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_standalone-x86_64.a.syms
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_standalone_cxx-i386.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_standalone_cxx-x86_64.a
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_standalone_cxx-x86_64.a.syms
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.xray-basic-x86_64.a
@@ -786,159 +659,31 @@ popd
 
 %files dev
 %defattr(-,root,root,-)
-/usr/lib32/clang/12.0.1/include/__clang_cuda_builtin_vars.h
-/usr/lib32/clang/12.0.1/include/__clang_cuda_cmath.h
-/usr/lib32/clang/12.0.1/include/__clang_cuda_complex_builtins.h
-/usr/lib32/clang/12.0.1/include/__clang_cuda_device_functions.h
-/usr/lib32/clang/12.0.1/include/__clang_cuda_intrinsics.h
-/usr/lib32/clang/12.0.1/include/__clang_cuda_libdevice_declares.h
-/usr/lib32/clang/12.0.1/include/__clang_cuda_math.h
-/usr/lib32/clang/12.0.1/include/__clang_cuda_math_forward_declares.h
-/usr/lib32/clang/12.0.1/include/__clang_cuda_runtime_wrapper.h
-/usr/lib32/clang/12.0.1/include/__clang_hip_cmath.h
-/usr/lib32/clang/12.0.1/include/__clang_hip_libdevice_declares.h
-/usr/lib32/clang/12.0.1/include/__clang_hip_math.h
-/usr/lib32/clang/12.0.1/include/__clang_hip_runtime_wrapper.h
-/usr/lib32/clang/12.0.1/include/__stddef_max_align_t.h
-/usr/lib32/clang/12.0.1/include/__wmmintrin_aes.h
-/usr/lib32/clang/12.0.1/include/__wmmintrin_pclmul.h
-/usr/lib32/clang/12.0.1/include/adxintrin.h
-/usr/lib32/clang/12.0.1/include/altivec.h
-/usr/lib32/clang/12.0.1/include/ammintrin.h
-/usr/lib32/clang/12.0.1/include/amxintrin.h
-/usr/lib32/clang/12.0.1/include/arm64intr.h
-/usr/lib32/clang/12.0.1/include/arm_acle.h
-/usr/lib32/clang/12.0.1/include/arm_bf16.h
-/usr/lib32/clang/12.0.1/include/arm_cde.h
-/usr/lib32/clang/12.0.1/include/arm_cmse.h
-/usr/lib32/clang/12.0.1/include/arm_fp16.h
-/usr/lib32/clang/12.0.1/include/arm_mve.h
-/usr/lib32/clang/12.0.1/include/arm_neon.h
-/usr/lib32/clang/12.0.1/include/arm_sve.h
-/usr/lib32/clang/12.0.1/include/armintr.h
-/usr/lib32/clang/12.0.1/include/avx2intrin.h
-/usr/lib32/clang/12.0.1/include/avx512bf16intrin.h
-/usr/lib32/clang/12.0.1/include/avx512bitalgintrin.h
-/usr/lib32/clang/12.0.1/include/avx512bwintrin.h
-/usr/lib32/clang/12.0.1/include/avx512cdintrin.h
-/usr/lib32/clang/12.0.1/include/avx512dqintrin.h
-/usr/lib32/clang/12.0.1/include/avx512erintrin.h
-/usr/lib32/clang/12.0.1/include/avx512fintrin.h
-/usr/lib32/clang/12.0.1/include/avx512ifmaintrin.h
-/usr/lib32/clang/12.0.1/include/avx512ifmavlintrin.h
-/usr/lib32/clang/12.0.1/include/avx512pfintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vbmi2intrin.h
-/usr/lib32/clang/12.0.1/include/avx512vbmiintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vbmivlintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vlbf16intrin.h
-/usr/lib32/clang/12.0.1/include/avx512vlbitalgintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vlbwintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vlcdintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vldqintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vlintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vlvbmi2intrin.h
-/usr/lib32/clang/12.0.1/include/avx512vlvnniintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vlvp2intersectintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vnniintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vp2intersectintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vpopcntdqintrin.h
-/usr/lib32/clang/12.0.1/include/avx512vpopcntdqvlintrin.h
-/usr/lib32/clang/12.0.1/include/avxintrin.h
-/usr/lib32/clang/12.0.1/include/avxvnniintrin.h
-/usr/lib32/clang/12.0.1/include/bmi2intrin.h
-/usr/lib32/clang/12.0.1/include/bmiintrin.h
-/usr/lib32/clang/12.0.1/include/cet.h
-/usr/lib32/clang/12.0.1/include/cetintrin.h
-/usr/lib32/clang/12.0.1/include/cldemoteintrin.h
-/usr/lib32/clang/12.0.1/include/clflushoptintrin.h
-/usr/lib32/clang/12.0.1/include/clwbintrin.h
-/usr/lib32/clang/12.0.1/include/clzerointrin.h
-/usr/lib32/clang/12.0.1/include/cpuid.h
-/usr/lib32/clang/12.0.1/include/emmintrin.h
-/usr/lib32/clang/12.0.1/include/enqcmdintrin.h
-/usr/lib32/clang/12.0.1/include/f16cintrin.h
-/usr/lib32/clang/12.0.1/include/float.h
-/usr/lib32/clang/12.0.1/include/fma4intrin.h
-/usr/lib32/clang/12.0.1/include/fmaintrin.h
-/usr/lib32/clang/12.0.1/include/fxsrintrin.h
-/usr/lib32/clang/12.0.1/include/gfniintrin.h
-/usr/lib32/clang/12.0.1/include/hresetintrin.h
-/usr/lib32/clang/12.0.1/include/htmintrin.h
-/usr/lib32/clang/12.0.1/include/htmxlintrin.h
-/usr/lib32/clang/12.0.1/include/ia32intrin.h
-/usr/lib32/clang/12.0.1/include/immintrin.h
-/usr/lib32/clang/12.0.1/include/intrin.h
-/usr/lib32/clang/12.0.1/include/inttypes.h
-/usr/lib32/clang/12.0.1/include/invpcidintrin.h
-/usr/lib32/clang/12.0.1/include/iso646.h
-/usr/lib32/clang/12.0.1/include/keylockerintrin.h
-/usr/lib32/clang/12.0.1/include/limits.h
-/usr/lib32/clang/12.0.1/include/lwpintrin.h
-/usr/lib32/clang/12.0.1/include/lzcntintrin.h
-/usr/lib32/clang/12.0.1/include/mm3dnow.h
-/usr/lib32/clang/12.0.1/include/mm_malloc.h
-/usr/lib32/clang/12.0.1/include/mmintrin.h
-/usr/lib32/clang/12.0.1/include/movdirintrin.h
-/usr/lib32/clang/12.0.1/include/msa.h
-/usr/lib32/clang/12.0.1/include/mwaitxintrin.h
-/usr/lib32/clang/12.0.1/include/nmmintrin.h
-/usr/lib32/clang/12.0.1/include/opencl-c-base.h
-/usr/lib32/clang/12.0.1/include/opencl-c.h
-/usr/lib32/clang/12.0.1/include/openmp_wrappers/__clang_openmp_device_functions.h
-/usr/lib32/clang/12.0.1/include/openmp_wrappers/complex.h
-/usr/lib32/clang/12.0.1/include/openmp_wrappers/complex_cmath.h
-/usr/lib32/clang/12.0.1/include/openmp_wrappers/math.h
-/usr/lib32/clang/12.0.1/include/pconfigintrin.h
-/usr/lib32/clang/12.0.1/include/pkuintrin.h
-/usr/lib32/clang/12.0.1/include/pmmintrin.h
-/usr/lib32/clang/12.0.1/include/popcntintrin.h
-/usr/lib32/clang/12.0.1/include/ppc_wrappers/emmintrin.h
-/usr/lib32/clang/12.0.1/include/ppc_wrappers/mm_malloc.h
-/usr/lib32/clang/12.0.1/include/ppc_wrappers/mmintrin.h
-/usr/lib32/clang/12.0.1/include/ppc_wrappers/pmmintrin.h
-/usr/lib32/clang/12.0.1/include/ppc_wrappers/smmintrin.h
-/usr/lib32/clang/12.0.1/include/ppc_wrappers/tmmintrin.h
-/usr/lib32/clang/12.0.1/include/ppc_wrappers/xmmintrin.h
-/usr/lib32/clang/12.0.1/include/prfchwintrin.h
-/usr/lib32/clang/12.0.1/include/ptwriteintrin.h
-/usr/lib32/clang/12.0.1/include/rdseedintrin.h
-/usr/lib32/clang/12.0.1/include/rtmintrin.h
-/usr/lib32/clang/12.0.1/include/s390intrin.h
-/usr/lib32/clang/12.0.1/include/serializeintrin.h
-/usr/lib32/clang/12.0.1/include/sgxintrin.h
-/usr/lib32/clang/12.0.1/include/shaintrin.h
-/usr/lib32/clang/12.0.1/include/smmintrin.h
-/usr/lib32/clang/12.0.1/include/stdalign.h
-/usr/lib32/clang/12.0.1/include/stdarg.h
-/usr/lib32/clang/12.0.1/include/stdatomic.h
-/usr/lib32/clang/12.0.1/include/stdbool.h
-/usr/lib32/clang/12.0.1/include/stddef.h
-/usr/lib32/clang/12.0.1/include/stdint.h
-/usr/lib32/clang/12.0.1/include/stdnoreturn.h
-/usr/lib32/clang/12.0.1/include/tbmintrin.h
-/usr/lib32/clang/12.0.1/include/tgmath.h
-/usr/lib32/clang/12.0.1/include/tmmintrin.h
-/usr/lib32/clang/12.0.1/include/tsxldtrkintrin.h
-/usr/lib32/clang/12.0.1/include/uintrintrin.h
-/usr/lib32/clang/12.0.1/include/unwind.h
-/usr/lib32/clang/12.0.1/include/vadefs.h
-/usr/lib32/clang/12.0.1/include/vaesintrin.h
-/usr/lib32/clang/12.0.1/include/varargs.h
-/usr/lib32/clang/12.0.1/include/vecintrin.h
-/usr/lib32/clang/12.0.1/include/vpclmulqdqintrin.h
-/usr/lib32/clang/12.0.1/include/waitpkgintrin.h
-/usr/lib32/clang/12.0.1/include/wasm_simd128.h
-/usr/lib32/clang/12.0.1/include/wbnoinvdintrin.h
-/usr/lib32/clang/12.0.1/include/wmmintrin.h
-/usr/lib32/clang/12.0.1/include/x86gprintrin.h
-/usr/lib32/clang/12.0.1/include/x86intrin.h
-/usr/lib32/clang/12.0.1/include/xmmintrin.h
-/usr/lib32/clang/12.0.1/include/xopintrin.h
-/usr/lib32/clang/12.0.1/include/xsavecintrin.h
-/usr/lib32/clang/12.0.1/include/xsaveintrin.h
-/usr/lib32/clang/12.0.1/include/xsaveoptintrin.h
-/usr/lib32/clang/12.0.1/include/xsavesintrin.h
-/usr/lib32/clang/12.0.1/include/xtestintrin.h
+/usr/lib64/clang/12.0.1/include/__clang_cuda_math.h
+/usr/lib64/clang/12.0.1/include/__clang_hip_cmath.h
+/usr/lib64/clang/12.0.1/include/__clang_hip_libdevice_declares.h
+/usr/lib64/clang/12.0.1/include/__clang_hip_math.h
+/usr/lib64/clang/12.0.1/include/__clang_hip_runtime_wrapper.h
+/usr/lib64/clang/12.0.1/include/amxintrin.h
+/usr/lib64/clang/12.0.1/include/arm_bf16.h
+/usr/lib64/clang/12.0.1/include/arm_cde.h
+/usr/lib64/clang/12.0.1/include/arm_sve.h
+/usr/lib64/clang/12.0.1/include/avxvnniintrin.h
+/usr/lib64/clang/12.0.1/include/cet.h
+/usr/lib64/clang/12.0.1/include/hresetintrin.h
+/usr/lib64/clang/12.0.1/include/keylockerintrin.h
+/usr/lib64/clang/12.0.1/include/openmp_wrappers/__clang_openmp_device_functions.h
+/usr/lib64/clang/12.0.1/include/openmp_wrappers/complex.h
+/usr/lib64/clang/12.0.1/include/openmp_wrappers/complex_cmath.h
+/usr/lib64/clang/12.0.1/include/serializeintrin.h
+/usr/lib64/clang/12.0.1/include/tsxldtrkintrin.h
+/usr/lib64/clang/12.0.1/include/uintrintrin.h
+/usr/lib64/clang/12.0.1/include/wasm_simd128.h
+/usr/lib64/clang/12.0.1/include/x86gprintrin.h
+
+%files extras
+%defattr(-,root,root,-)
+/usr/lib/bfd-plugins/LLVMgold-12.so
 /usr/lib64/LLVMgold-12.so
 /usr/lib64/clang/12.0.1/include/__clang_cuda_builtin_vars.h
 /usr/lib64/clang/12.0.1/include/__clang_cuda_cmath.h
@@ -946,29 +691,20 @@ popd
 /usr/lib64/clang/12.0.1/include/__clang_cuda_device_functions.h
 /usr/lib64/clang/12.0.1/include/__clang_cuda_intrinsics.h
 /usr/lib64/clang/12.0.1/include/__clang_cuda_libdevice_declares.h
-/usr/lib64/clang/12.0.1/include/__clang_cuda_math.h
 /usr/lib64/clang/12.0.1/include/__clang_cuda_math_forward_declares.h
 /usr/lib64/clang/12.0.1/include/__clang_cuda_runtime_wrapper.h
-/usr/lib64/clang/12.0.1/include/__clang_hip_cmath.h
-/usr/lib64/clang/12.0.1/include/__clang_hip_libdevice_declares.h
-/usr/lib64/clang/12.0.1/include/__clang_hip_math.h
-/usr/lib64/clang/12.0.1/include/__clang_hip_runtime_wrapper.h
 /usr/lib64/clang/12.0.1/include/__stddef_max_align_t.h
 /usr/lib64/clang/12.0.1/include/__wmmintrin_aes.h
 /usr/lib64/clang/12.0.1/include/__wmmintrin_pclmul.h
 /usr/lib64/clang/12.0.1/include/adxintrin.h
 /usr/lib64/clang/12.0.1/include/altivec.h
 /usr/lib64/clang/12.0.1/include/ammintrin.h
-/usr/lib64/clang/12.0.1/include/amxintrin.h
 /usr/lib64/clang/12.0.1/include/arm64intr.h
 /usr/lib64/clang/12.0.1/include/arm_acle.h
-/usr/lib64/clang/12.0.1/include/arm_bf16.h
-/usr/lib64/clang/12.0.1/include/arm_cde.h
 /usr/lib64/clang/12.0.1/include/arm_cmse.h
 /usr/lib64/clang/12.0.1/include/arm_fp16.h
 /usr/lib64/clang/12.0.1/include/arm_mve.h
 /usr/lib64/clang/12.0.1/include/arm_neon.h
-/usr/lib64/clang/12.0.1/include/arm_sve.h
 /usr/lib64/clang/12.0.1/include/armintr.h
 /usr/lib64/clang/12.0.1/include/avx2intrin.h
 /usr/lib64/clang/12.0.1/include/avx512bf16intrin.h
@@ -998,16 +734,17 @@ popd
 /usr/lib64/clang/12.0.1/include/avx512vpopcntdqintrin.h
 /usr/lib64/clang/12.0.1/include/avx512vpopcntdqvlintrin.h
 /usr/lib64/clang/12.0.1/include/avxintrin.h
-/usr/lib64/clang/12.0.1/include/avxvnniintrin.h
 /usr/lib64/clang/12.0.1/include/bmi2intrin.h
 /usr/lib64/clang/12.0.1/include/bmiintrin.h
-/usr/lib64/clang/12.0.1/include/cet.h
 /usr/lib64/clang/12.0.1/include/cetintrin.h
 /usr/lib64/clang/12.0.1/include/cldemoteintrin.h
 /usr/lib64/clang/12.0.1/include/clflushoptintrin.h
 /usr/lib64/clang/12.0.1/include/clwbintrin.h
 /usr/lib64/clang/12.0.1/include/clzerointrin.h
 /usr/lib64/clang/12.0.1/include/cpuid.h
+/usr/lib64/clang/12.0.1/include/cuda_wrappers/algorithm
+/usr/lib64/clang/12.0.1/include/cuda_wrappers/complex
+/usr/lib64/clang/12.0.1/include/cuda_wrappers/new
 /usr/lib64/clang/12.0.1/include/emmintrin.h
 /usr/lib64/clang/12.0.1/include/enqcmdintrin.h
 /usr/lib64/clang/12.0.1/include/f16cintrin.h
@@ -1017,7 +754,6 @@ popd
 /usr/lib64/clang/12.0.1/include/fuzzer/FuzzedDataProvider.h
 /usr/lib64/clang/12.0.1/include/fxsrintrin.h
 /usr/lib64/clang/12.0.1/include/gfniintrin.h
-/usr/lib64/clang/12.0.1/include/hresetintrin.h
 /usr/lib64/clang/12.0.1/include/htmintrin.h
 /usr/lib64/clang/12.0.1/include/htmxlintrin.h
 /usr/lib64/clang/12.0.1/include/ia32intrin.h
@@ -1026,13 +762,13 @@ popd
 /usr/lib64/clang/12.0.1/include/inttypes.h
 /usr/lib64/clang/12.0.1/include/invpcidintrin.h
 /usr/lib64/clang/12.0.1/include/iso646.h
-/usr/lib64/clang/12.0.1/include/keylockerintrin.h
 /usr/lib64/clang/12.0.1/include/limits.h
 /usr/lib64/clang/12.0.1/include/lwpintrin.h
 /usr/lib64/clang/12.0.1/include/lzcntintrin.h
 /usr/lib64/clang/12.0.1/include/mm3dnow.h
 /usr/lib64/clang/12.0.1/include/mm_malloc.h
 /usr/lib64/clang/12.0.1/include/mmintrin.h
+/usr/lib64/clang/12.0.1/include/module.modulemap
 /usr/lib64/clang/12.0.1/include/movdirintrin.h
 /usr/lib64/clang/12.0.1/include/msa.h
 /usr/lib64/clang/12.0.1/include/mwaitxintrin.h
@@ -1042,9 +778,6 @@ popd
 /usr/lib64/clang/12.0.1/include/ompt.h
 /usr/lib64/clang/12.0.1/include/opencl-c-base.h
 /usr/lib64/clang/12.0.1/include/opencl-c.h
-/usr/lib64/clang/12.0.1/include/openmp_wrappers/__clang_openmp_device_functions.h
-/usr/lib64/clang/12.0.1/include/openmp_wrappers/complex.h
-/usr/lib64/clang/12.0.1/include/openmp_wrappers/complex_cmath.h
 /usr/lib64/clang/12.0.1/include/openmp_wrappers/math.h
 /usr/lib64/clang/12.0.1/include/pconfigintrin.h
 /usr/lib64/clang/12.0.1/include/pkuintrin.h
@@ -1076,7 +809,6 @@ popd
 /usr/lib64/clang/12.0.1/include/sanitizer/tsan_interface.h
 /usr/lib64/clang/12.0.1/include/sanitizer/tsan_interface_atomic.h
 /usr/lib64/clang/12.0.1/include/sanitizer/ubsan_interface.h
-/usr/lib64/clang/12.0.1/include/serializeintrin.h
 /usr/lib64/clang/12.0.1/include/sgxintrin.h
 /usr/lib64/clang/12.0.1/include/shaintrin.h
 /usr/lib64/clang/12.0.1/include/smmintrin.h
@@ -1090,8 +822,6 @@ popd
 /usr/lib64/clang/12.0.1/include/tbmintrin.h
 /usr/lib64/clang/12.0.1/include/tgmath.h
 /usr/lib64/clang/12.0.1/include/tmmintrin.h
-/usr/lib64/clang/12.0.1/include/tsxldtrkintrin.h
-/usr/lib64/clang/12.0.1/include/uintrintrin.h
 /usr/lib64/clang/12.0.1/include/unwind.h
 /usr/lib64/clang/12.0.1/include/vadefs.h
 /usr/lib64/clang/12.0.1/include/vaesintrin.h
@@ -1099,10 +829,8 @@ popd
 /usr/lib64/clang/12.0.1/include/vecintrin.h
 /usr/lib64/clang/12.0.1/include/vpclmulqdqintrin.h
 /usr/lib64/clang/12.0.1/include/waitpkgintrin.h
-/usr/lib64/clang/12.0.1/include/wasm_simd128.h
 /usr/lib64/clang/12.0.1/include/wbnoinvdintrin.h
 /usr/lib64/clang/12.0.1/include/wmmintrin.h
-/usr/lib64/clang/12.0.1/include/x86gprintrin.h
 /usr/lib64/clang/12.0.1/include/x86intrin.h
 /usr/lib64/clang/12.0.1/include/xmmintrin.h
 /usr/lib64/clang/12.0.1/include/xopintrin.h
@@ -1114,72 +842,21 @@ popd
 /usr/lib64/clang/12.0.1/include/xsaveoptintrin.h
 /usr/lib64/clang/12.0.1/include/xsavesintrin.h
 /usr/lib64/clang/12.0.1/include/xtestintrin.h
-
-%files dev32
-%defattr(-,root,root,-)
-/usr/lib32/LLVMgold.so
-/usr/lib32/cmake/clang/ClangConfig.cmake
-/usr/lib32/cmake/clang/ClangTargets-relwithdebinfo.cmake
-/usr/lib32/cmake/clang/ClangTargets.cmake
-/usr/lib32/cmake/llvm/AddLLVM.cmake
-/usr/lib32/cmake/llvm/AddLLVMDefinitions.cmake
-/usr/lib32/cmake/llvm/AddOCaml.cmake
-/usr/lib32/cmake/llvm/AddSphinxTarget.cmake
-/usr/lib32/cmake/llvm/CheckAtomic.cmake
-/usr/lib32/cmake/llvm/CheckCompilerVersion.cmake
-/usr/lib32/cmake/llvm/CheckLinkerFlag.cmake
-/usr/lib32/cmake/llvm/ChooseMSVCCRT.cmake
-/usr/lib32/cmake/llvm/CrossCompile.cmake
-/usr/lib32/cmake/llvm/DetermineGCCCompatible.cmake
-/usr/lib32/cmake/llvm/FindGRPC.cmake
-/usr/lib32/cmake/llvm/FindLibpfm.cmake
-/usr/lib32/cmake/llvm/FindOCaml.cmake
-/usr/lib32/cmake/llvm/FindSphinx.cmake
-/usr/lib32/cmake/llvm/FindZ3.cmake
-/usr/lib32/cmake/llvm/GenerateVersionFromVCS.cmake
-/usr/lib32/cmake/llvm/GetLibraryName.cmake
-/usr/lib32/cmake/llvm/HandleLLVMOptions.cmake
-/usr/lib32/cmake/llvm/HandleLLVMStdlib.cmake
-/usr/lib32/cmake/llvm/LLVM-Build.cmake
-/usr/lib32/cmake/llvm/LLVM-Config.cmake
-/usr/lib32/cmake/llvm/LLVMConfig.cmake
-/usr/lib32/cmake/llvm/LLVMConfigExtensions.cmake
-/usr/lib32/cmake/llvm/LLVMConfigVersion.cmake
-/usr/lib32/cmake/llvm/LLVMDistributionSupport.cmake
-/usr/lib32/cmake/llvm/LLVMExports-relwithdebinfo.cmake
-/usr/lib32/cmake/llvm/LLVMExports.cmake
-/usr/lib32/cmake/llvm/LLVMExternalProjectUtils.cmake
-/usr/lib32/cmake/llvm/LLVMInstallSymlink.cmake
-/usr/lib32/cmake/llvm/LLVMProcessSources.cmake
-/usr/lib32/cmake/llvm/TableGen.cmake
-/usr/lib32/cmake/llvm/TensorFlowCompile.cmake
-/usr/lib32/cmake/llvm/UseLibtool.cmake
-/usr/lib32/cmake/llvm/VersionFromVCS.cmake
-/usr/lib32/libLLVM.so
-/usr/lib32/libLTO.so
-/usr/lib32/libRemarks.so
-/usr/lib32/libclang-cpp.so
-/usr/lib32/libclang.so
-/usr/lib32/pkgconfig/32LLVMSPIRVLib.pc
-/usr/lib32/pkgconfig/LLVMSPIRVLib.pc
-
-%files lib
-%defattr(-,root,root,-)
-/usr/lib/bfd-plugins/LLVMgold-12.so
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan-i386.so
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.asan-x86_64.so
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.dyndd-x86_64.so
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.hwasan-x86_64.so
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.memprof-x86_64.so
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo-i386.so
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo-x86_64.so
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_minimal-i386.so
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.scudo_minimal-x86_64.so
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_minimal-i386.so
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_minimal-x86_64.so
-/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_standalone-i386.so
 /usr/lib64/clang/12.0.1/lib/linux/libclang_rt.ubsan_standalone-x86_64.so
+
+%files extras-libllvm
+%defattr(-,root,root,-)
 /usr/lib64/libLLVM.so.12
+
+%files lib
+%defattr(-,root,root,-)
+/usr/lib64/clang/12.0.1/lib/linux/libclang_rt.memprof-x86_64.so
 /usr/lib64/libLTO.so.12
 /usr/lib64/libRemarks.so.12
 /usr/lib64/libclang-cpp.so.12
@@ -1188,14 +865,6 @@ popd
 /usr/lib64/liblldb.so.12.0.1
 /usr/lib64/liblldbIntelFeatures.so.12
 /usr/lib64/libomptarget.so.12
-
-%files lib32
-%defattr(-,root,root,-)
-/usr/lib32/libLLVM.so.12
-/usr/lib32/libLTO.so.12
-/usr/lib32/libRemarks.so.12
-/usr/lib32/libclang-cpp.so.12
-/usr/lib32/libclang.so.12
 
 %files license
 %defattr(0644,root,root,0755)
@@ -1229,197 +898,3 @@ popd
 %files python3
 %defattr(-,root,root,-)
 /usr/lib/python3*/*
-
-%files staticdev32
-%defattr(-,root,root,-)
-/usr/lib32/libLLVMAArch64AsmParser.a
-/usr/lib32/libLLVMAArch64CodeGen.a
-/usr/lib32/libLLVMAArch64Desc.a
-/usr/lib32/libLLVMAArch64Disassembler.a
-/usr/lib32/libLLVMAArch64Info.a
-/usr/lib32/libLLVMAArch64Utils.a
-/usr/lib32/libLLVMAMDGPUAsmParser.a
-/usr/lib32/libLLVMAMDGPUCodeGen.a
-/usr/lib32/libLLVMAMDGPUDesc.a
-/usr/lib32/libLLVMAMDGPUDisassembler.a
-/usr/lib32/libLLVMAMDGPUInfo.a
-/usr/lib32/libLLVMAMDGPUUtils.a
-/usr/lib32/libLLVMARMAsmParser.a
-/usr/lib32/libLLVMARMCodeGen.a
-/usr/lib32/libLLVMARMDesc.a
-/usr/lib32/libLLVMARMDisassembler.a
-/usr/lib32/libLLVMARMInfo.a
-/usr/lib32/libLLVMARMUtils.a
-/usr/lib32/libLLVMAVRAsmParser.a
-/usr/lib32/libLLVMAVRCodeGen.a
-/usr/lib32/libLLVMAVRDesc.a
-/usr/lib32/libLLVMAVRDisassembler.a
-/usr/lib32/libLLVMAVRInfo.a
-/usr/lib32/libLLVMAggressiveInstCombine.a
-/usr/lib32/libLLVMAnalysis.a
-/usr/lib32/libLLVMAsmParser.a
-/usr/lib32/libLLVMAsmPrinter.a
-/usr/lib32/libLLVMBPFAsmParser.a
-/usr/lib32/libLLVMBPFCodeGen.a
-/usr/lib32/libLLVMBPFDesc.a
-/usr/lib32/libLLVMBPFDisassembler.a
-/usr/lib32/libLLVMBPFInfo.a
-/usr/lib32/libLLVMBinaryFormat.a
-/usr/lib32/libLLVMBitReader.a
-/usr/lib32/libLLVMBitWriter.a
-/usr/lib32/libLLVMBitstreamReader.a
-/usr/lib32/libLLVMCFGuard.a
-/usr/lib32/libLLVMCodeGen.a
-/usr/lib32/libLLVMCore.a
-/usr/lib32/libLLVMCoroutines.a
-/usr/lib32/libLLVMCoverage.a
-/usr/lib32/libLLVMDWARFLinker.a
-/usr/lib32/libLLVMDebugInfoCodeView.a
-/usr/lib32/libLLVMDebugInfoDWARF.a
-/usr/lib32/libLLVMDebugInfoGSYM.a
-/usr/lib32/libLLVMDebugInfoMSF.a
-/usr/lib32/libLLVMDebugInfoPDB.a
-/usr/lib32/libLLVMDemangle.a
-/usr/lib32/libLLVMDlltoolDriver.a
-/usr/lib32/libLLVMExecutionEngine.a
-/usr/lib32/libLLVMExtensions.a
-/usr/lib32/libLLVMFileCheck.a
-/usr/lib32/libLLVMFrontendOpenACC.a
-/usr/lib32/libLLVMFrontendOpenMP.a
-/usr/lib32/libLLVMFuzzMutate.a
-/usr/lib32/libLLVMGlobalISel.a
-/usr/lib32/libLLVMHelloNew.a
-/usr/lib32/libLLVMHexagonAsmParser.a
-/usr/lib32/libLLVMHexagonCodeGen.a
-/usr/lib32/libLLVMHexagonDesc.a
-/usr/lib32/libLLVMHexagonDisassembler.a
-/usr/lib32/libLLVMHexagonInfo.a
-/usr/lib32/libLLVMIRReader.a
-/usr/lib32/libLLVMInstCombine.a
-/usr/lib32/libLLVMInstrumentation.a
-/usr/lib32/libLLVMInterfaceStub.a
-/usr/lib32/libLLVMInterpreter.a
-/usr/lib32/libLLVMJITLink.a
-/usr/lib32/libLLVMLTO.a
-/usr/lib32/libLLVMLanaiAsmParser.a
-/usr/lib32/libLLVMLanaiCodeGen.a
-/usr/lib32/libLLVMLanaiDesc.a
-/usr/lib32/libLLVMLanaiDisassembler.a
-/usr/lib32/libLLVMLanaiInfo.a
-/usr/lib32/libLLVMLibDriver.a
-/usr/lib32/libLLVMLineEditor.a
-/usr/lib32/libLLVMLinker.a
-/usr/lib32/libLLVMMC.a
-/usr/lib32/libLLVMMCA.a
-/usr/lib32/libLLVMMCDisassembler.a
-/usr/lib32/libLLVMMCJIT.a
-/usr/lib32/libLLVMMCParser.a
-/usr/lib32/libLLVMMIRParser.a
-/usr/lib32/libLLVMMSP430AsmParser.a
-/usr/lib32/libLLVMMSP430CodeGen.a
-/usr/lib32/libLLVMMSP430Desc.a
-/usr/lib32/libLLVMMSP430Disassembler.a
-/usr/lib32/libLLVMMSP430Info.a
-/usr/lib32/libLLVMMipsAsmParser.a
-/usr/lib32/libLLVMMipsCodeGen.a
-/usr/lib32/libLLVMMipsDesc.a
-/usr/lib32/libLLVMMipsDisassembler.a
-/usr/lib32/libLLVMMipsInfo.a
-/usr/lib32/libLLVMNVPTXCodeGen.a
-/usr/lib32/libLLVMNVPTXDesc.a
-/usr/lib32/libLLVMNVPTXInfo.a
-/usr/lib32/libLLVMObjCARCOpts.a
-/usr/lib32/libLLVMObject.a
-/usr/lib32/libLLVMObjectYAML.a
-/usr/lib32/libLLVMOption.a
-/usr/lib32/libLLVMOrcJIT.a
-/usr/lib32/libLLVMOrcShared.a
-/usr/lib32/libLLVMOrcTargetProcess.a
-/usr/lib32/libLLVMPasses.a
-/usr/lib32/libLLVMPowerPCAsmParser.a
-/usr/lib32/libLLVMPowerPCCodeGen.a
-/usr/lib32/libLLVMPowerPCDesc.a
-/usr/lib32/libLLVMPowerPCDisassembler.a
-/usr/lib32/libLLVMPowerPCInfo.a
-/usr/lib32/libLLVMProfileData.a
-/usr/lib32/libLLVMRISCVAsmParser.a
-/usr/lib32/libLLVMRISCVCodeGen.a
-/usr/lib32/libLLVMRISCVDesc.a
-/usr/lib32/libLLVMRISCVDisassembler.a
-/usr/lib32/libLLVMRISCVInfo.a
-/usr/lib32/libLLVMRemarks.a
-/usr/lib32/libLLVMRuntimeDyld.a
-/usr/lib32/libLLVMSPIRVLib.a
-/usr/lib32/libLLVMScalarOpts.a
-/usr/lib32/libLLVMSelectionDAG.a
-/usr/lib32/libLLVMSparcAsmParser.a
-/usr/lib32/libLLVMSparcCodeGen.a
-/usr/lib32/libLLVMSparcDesc.a
-/usr/lib32/libLLVMSparcDisassembler.a
-/usr/lib32/libLLVMSparcInfo.a
-/usr/lib32/libLLVMSupport.a
-/usr/lib32/libLLVMSymbolize.a
-/usr/lib32/libLLVMSystemZAsmParser.a
-/usr/lib32/libLLVMSystemZCodeGen.a
-/usr/lib32/libLLVMSystemZDesc.a
-/usr/lib32/libLLVMSystemZDisassembler.a
-/usr/lib32/libLLVMSystemZInfo.a
-/usr/lib32/libLLVMTableGen.a
-/usr/lib32/libLLVMTarget.a
-/usr/lib32/libLLVMTextAPI.a
-/usr/lib32/libLLVMTransformUtils.a
-/usr/lib32/libLLVMVectorize.a
-/usr/lib32/libLLVMWebAssemblyAsmParser.a
-/usr/lib32/libLLVMWebAssemblyCodeGen.a
-/usr/lib32/libLLVMWebAssemblyDesc.a
-/usr/lib32/libLLVMWebAssemblyDisassembler.a
-/usr/lib32/libLLVMWebAssemblyInfo.a
-/usr/lib32/libLLVMWindowsManifest.a
-/usr/lib32/libLLVMX86AsmParser.a
-/usr/lib32/libLLVMX86CodeGen.a
-/usr/lib32/libLLVMX86Desc.a
-/usr/lib32/libLLVMX86Disassembler.a
-/usr/lib32/libLLVMX86Info.a
-/usr/lib32/libLLVMXCoreCodeGen.a
-/usr/lib32/libLLVMXCoreDesc.a
-/usr/lib32/libLLVMXCoreDisassembler.a
-/usr/lib32/libLLVMXCoreInfo.a
-/usr/lib32/libLLVMXRay.a
-/usr/lib32/libLLVMipo.a
-/usr/lib32/libclangAPINotes.a
-/usr/lib32/libclangARCMigrate.a
-/usr/lib32/libclangAST.a
-/usr/lib32/libclangASTMatchers.a
-/usr/lib32/libclangAnalysis.a
-/usr/lib32/libclangBasic.a
-/usr/lib32/libclangCodeGen.a
-/usr/lib32/libclangCrossTU.a
-/usr/lib32/libclangDependencyScanning.a
-/usr/lib32/libclangDirectoryWatcher.a
-/usr/lib32/libclangDriver.a
-/usr/lib32/libclangDynamicASTMatchers.a
-/usr/lib32/libclangEdit.a
-/usr/lib32/libclangFormat.a
-/usr/lib32/libclangFrontend.a
-/usr/lib32/libclangFrontendTool.a
-/usr/lib32/libclangHandleCXX.a
-/usr/lib32/libclangHandleLLVM.a
-/usr/lib32/libclangIndex.a
-/usr/lib32/libclangIndexSerialization.a
-/usr/lib32/libclangLex.a
-/usr/lib32/libclangParse.a
-/usr/lib32/libclangRewrite.a
-/usr/lib32/libclangRewriteFrontend.a
-/usr/lib32/libclangSema.a
-/usr/lib32/libclangSerialization.a
-/usr/lib32/libclangStaticAnalyzerCheckers.a
-/usr/lib32/libclangStaticAnalyzerCore.a
-/usr/lib32/libclangStaticAnalyzerFrontend.a
-/usr/lib32/libclangTesting.a
-/usr/lib32/libclangTooling.a
-/usr/lib32/libclangToolingASTDiff.a
-/usr/lib32/libclangToolingCore.a
-/usr/lib32/libclangToolingInclusions.a
-/usr/lib32/libclangToolingRefactoring.a
-/usr/lib32/libclangToolingSyntax.a
-/usr/lib32/libclangTransformer.a
