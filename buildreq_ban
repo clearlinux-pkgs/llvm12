@@ -1,3 +1,12 @@
 # This file contains build requirements that get picked up but are
 # undesirable. One entry per line, no whitespace.
 beignet-dev
+pypi(flit)
+pypi(graphviz)
+pypi(humanize)
+pypi(matplotlib)
+pypi(pandas)
+pypi(psutil)
+pypi(ptyprocess)
+pypi(pybind11)
+pypi(seaborn)

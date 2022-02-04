@@ -7,6 +7,7 @@ pushd clr-bootstrap-build
 CFLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//; s/-feliminate-unused-debug-types//' <<<$CFLAGS` -fno-integrated-as"
 CXXFLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//; s/-feliminate-unused-debug-types//' <<<$CXXFLAGS` -fno-integrated-as"
 %cmake .. \
+    -Wno-dev \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_SHARED_LIBS:BOOL=OFF \
@@ -26,7 +27,7 @@ CXXFLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//; s/-feliminate-un
     -DLLVM_BINUTILS_INCDIR=/usr/include \
     -DLLVM_HOST_TRIPLE="x86_64-generic-linux" \
     -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3
-ninja -v
+ninja
 popd
 export PATH=/usr/lib64/ccache/bin/:${PWD}/clr-bootstrap-build/bin:${PATH}
 export LLVM_AR=${PWD}/clr-bootstrap-build/bin/llvm-ar

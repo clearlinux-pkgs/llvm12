@@ -7,7 +7,7 @@
 %define keepstatic 1
 Name     : llvm12
 Version  : 12.0.1
-Release  : 2
+Release  : 3
 URL      : https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/llvm-project-12.0.1.src.tar.xz
 Source0  : https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/llvm-project-12.0.1.src.tar.xz
 Source1  : https://github.com/KhronosGroup/SPIRV-LLVM-Translator/archive/v12.0.0/SPIRV-LLVM-Translator-12.0.0.tar.gz
@@ -18,8 +18,6 @@ License  : Apache-2.0 BSD-3-Clause ISC MIT MPL-2.0 NCSA
 Requires: llvm12-bin = %{version}-%{release}
 Requires: llvm12-lib = %{version}-%{release}
 Requires: llvm12-license = %{version}-%{release}
-Requires: llvm12-python = %{version}-%{release}
-Requires: llvm12-python3 = %{version}-%{release}
 BuildRequires : Sphinx
 BuildRequires : Vulkan-Headers-dev Vulkan-Loader-dev Vulkan-Tools
 BuildRequires : Z3-dev
@@ -50,15 +48,6 @@ BuildRequires : pkg-config
 BuildRequires : pkgconfig(libedit)
 BuildRequires : pkgconfig(libffi)
 BuildRequires : protobuf-dev
-BuildRequires : pypi(flit)
-BuildRequires : pypi(graphviz)
-BuildRequires : pypi(humanize)
-BuildRequires : pypi(matplotlib)
-BuildRequires : pypi(pandas)
-BuildRequires : pypi(psutil)
-BuildRequires : pypi(ptyprocess)
-BuildRequires : pypi(pybind11)
-BuildRequires : pypi(seaborn)
 BuildRequires : python3-dev
 BuildRequires : rsync
 BuildRequires : sed
@@ -133,31 +122,6 @@ Group: Default
 license components for the llvm12 package.
 
 
-%package python
-Summary: python components for the llvm12 package.
-Group: Default
-Requires: llvm12-python3 = %{version}-%{release}
-
-%description python
-python components for the llvm12 package.
-
-
-%package python3
-Summary: python3 components for the llvm12 package.
-Group: Default
-Requires: python3-core
-Requires: pypi(graphviz)
-Requires: pypi(humanize)
-Requires: pypi(matplotlib)
-Requires: pypi(pandas)
-Requires: pypi(psutil)
-Requires: pypi(ptyprocess)
-Requires: pypi(seaborn)
-
-%description python3
-python3 components for the llvm12 package.
-
-
 %prep
 %setup -q -n llvm-project-12.0.1.src
 cd %{_builddir}
@@ -183,6 +147,7 @@ pushd clr-bootstrap-build
 CFLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//; s/-feliminate-unused-debug-types//' <<<$CFLAGS` -fno-integrated-as"
 CXXFLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//; s/-feliminate-unused-debug-types//' <<<$CXXFLAGS` -fno-integrated-as"
 %cmake .. \
+-Wno-dev \
 -G Ninja \
 -DCMAKE_BUILD_TYPE=Release \
 -DBUILD_SHARED_LIBS:BOOL=OFF \
@@ -202,7 +167,7 @@ CXXFLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//; s/-feliminate-un
 -DLLVM_BINUTILS_INCDIR=/usr/include \
 -DLLVM_HOST_TRIPLE="x86_64-generic-linux" \
 -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3
-ninja -v
+ninja
 popd
 export PATH=/usr/lib64/ccache/bin/:${PWD}/clr-bootstrap-build/bin:${PATH}
 export LLVM_AR=${PWD}/clr-bootstrap-build/bin/llvm-ar
@@ -215,7 +180,7 @@ export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
 export LANG=C.UTF-8
-export SOURCE_DATE_EPOCH=1643924756
+export SOURCE_DATE_EPOCH=1643937273
 unset LD_AS_NEEDED
 pushd llvm
 mkdir -p clr-build
@@ -236,7 +201,8 @@ export CFLAGS="$CFLAGS -fno-lto "
 export FCFLAGS="$FFLAGS -fno-lto "
 export FFLAGS="$FFLAGS -fno-lto "
 export CXXFLAGS="$CXXFLAGS -fno-lto "
-%cmake .. -G Ninja \
+%cmake .. -Wno-dev \
+-G Ninja \
 -DCMAKE_C_FLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//' <<<$CFLAGS`" \
 -DCMAKE_CXX_FLAGS="`sed -E 's/-Wl,\S+\s//g; s/-Wp,-D_FORTIFY_SOURCE=2//' <<<$CXXFLAGS`" \
 -DCMAKE_EXE_LINKER_FLAGS="$CXXFLAGS -Wl,--as-needed -Wl,--build-id=sha1" \
@@ -254,7 +220,7 @@ export CXXFLAGS="$CXXFLAGS -fno-lto "
 -DLLVM_REQUIRES_RTTI:BOOL=ON \
 -DLLVM_TABLEGEN=$LLVM_TABLEGEN \
 -DCLANG_TABLEGEN=$CLANG_TABLEGEN \
--DLLVM_ENABLE_PROJECTS="lld;lldb;clang;clang-tools-extra;compiler-rt;openmp;polly;mler;" \
+-DLLVM_ENABLE_PROJECTS="lld;clang;clang-tools-extra;compiler-rt;openmp;polly;mler;" \
 -DLLVM_LIBDIR_SUFFIX=64 \
 -DLLVM_BINUTILS_INCDIR=/usr/include \
 -DLLVM_HOST_TRIPLE="x86_64-generic-linux" \
@@ -272,7 +238,7 @@ popd
 popd
 
 %install
-export SOURCE_DATE_EPOCH=1643924756
+export SOURCE_DATE_EPOCH=1643937273
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/package-licenses/llvm12
 cp %{_builddir}/SPIRV-LLVM-Translator-12.0.0/LICENSE.TXT %{buildroot}/usr/share/package-licenses/llvm12/8f178caf2a2d6e6c711a30da69077572df356cf6
@@ -401,11 +367,6 @@ popd
 /usr/lib64/clang/12.0.1/bin/llc
 /usr/lib64/clang/12.0.1/bin/lld
 /usr/lib64/clang/12.0.1/bin/lld-link
-/usr/lib64/clang/12.0.1/bin/lldb
-/usr/lib64/clang/12.0.1/bin/lldb-argdumper
-/usr/lib64/clang/12.0.1/bin/lldb-instr
-/usr/lib64/clang/12.0.1/bin/lldb-server
-/usr/lib64/clang/12.0.1/bin/lldb-vscode
 /usr/lib64/clang/12.0.1/bin/lli
 /usr/lib64/clang/12.0.1/bin/llvm-addr2line
 /usr/lib64/clang/12.0.1/bin/llvm-ar
@@ -580,11 +541,6 @@ popd
 /usr/bin/llc-12
 /usr/bin/lld-12
 /usr/bin/lld-link-12
-/usr/bin/lldb-12
-/usr/bin/lldb-argdumper-12
-/usr/bin/lldb-instr-12
-/usr/bin/lldb-server-12
-/usr/bin/lldb-vscode-12
 /usr/bin/lli-12
 /usr/bin/llvm-addr2line-12
 /usr/bin/llvm-ar-12
@@ -861,9 +817,6 @@ popd
 /usr/lib64/libRemarks.so.12
 /usr/lib64/libclang-cpp.so.12
 /usr/lib64/libclang.so.12
-/usr/lib64/liblldb.so.12
-/usr/lib64/liblldb.so.12.0.1
-/usr/lib64/liblldbIntelFeatures.so.12
 /usr/lib64/libomptarget.so.12
 
 %files license
@@ -891,10 +844,3 @@ popd
 /usr/share/package-licenses/llvm12/e3cccabb67bd491a643d32a7d2b65b49836e626d
 /usr/share/package-licenses/llvm12/f226af67862c0c7a0e921e24672a3a1375691e3e
 /usr/share/package-licenses/llvm12/f4359b9da55a3b9e4d9513eb79cacf125fb49e7b
-
-%files python
-%defattr(-,root,root,-)
-
-%files python3
-%defattr(-,root,root,-)
-/usr/lib/python3*/*
